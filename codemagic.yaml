@@ -6,13 +6,11 @@ workflows:
 
     environment:
       flutter: stable
-      groups:
-        - android_signing
+      java: jdk_17
 
     scripts:
       - name: Get packages
-        script: |
-          flutter pub get
+        script: flutter pub get
 
       - name: Build APK
         script: |
