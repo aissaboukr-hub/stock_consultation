@@ -1,37 +1,31 @@
 workflows:
-  flutter-app-workflow:
-    name: Stock_Consultation
-    max_build_duration: 60
+  android-workflow:
+    name: Android Stock Consultation
+    max_build_duration: 30
+    instance_type: mac_mini_m2
 
     environment:
       flutter: stable
-      java: 17
-
-    cache:
-      cache_paths:
-        - ~/.pub-cache
-        - build
+      java: jdk_17
 
     scripts:
-      - name: Clean project
-        script: flutter clean
-
-      - name: Get dependencies
+      - name: Get packages
         script: flutter pub get
 
-      - name: Analyze project
-        script: flutter analyze || true
+      - name: Build APK
+        script: |
+          flutter build apk --release \
+            --build-name=1.0.0 \
+            --build-number=1
 
-      - name: Run tests
-        script: flutter test || true
-
-      - name: Build APK (Release)
-        script: flutter build apk --release
-
-      - name: Build AAB (Play Store)
-        script: flutter build appbundle --release
+      - name: Build AAB
+        script: |
+          flutter build appbundle --release \
+            --build-name=1.0.0 \
+            --build-number=1
 
     artifacts:
-artifacts:
-      - build/app/outputs/flutter-apk/app-release.apk
-      - build/app/outputs/bundle/release/app-release.aab
+      - build/app/outputs/flutter-apk/*.apk
+      - build/app/outputs/bundle/release/*.aab
+
+  
