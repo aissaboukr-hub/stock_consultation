@@ -1,6 +1,6 @@
 workflows:
   flutter-app-workflow:
-    name: Android Stock Consultation
+    name: Stock_Consultation
     max_build_duration: 60
 
     environment:
@@ -32,5 +32,6 @@ workflows:
         script: flutter build appbundle --release
 
     artifacts:
-      - build/**/app-release.apk
-      - build/**/app-release.aab
+artifacts:
+      - build/app/outputs/flutter-apk/app-release.apk
+      - build/app/outputs/bundle/release/app-release.aab
