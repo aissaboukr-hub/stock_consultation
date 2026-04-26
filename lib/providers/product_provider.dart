@@ -7,16 +7,21 @@ class ProductProvider extends ChangeNotifier {
   List<Product> _products = [];
   bool _isLoading = false;
   String? _error;
+  int _totalParsed = 0;
 
+  // Getters
   List<Product> get products => List.unmodifiable(_products);
   bool get isDatabaseLoaded => _products.isNotEmpty;
   int get productCount => _products.length;
   bool get isLoading => _isLoading;
   String? get error => _error;
+  int get totalParsed => _totalParsed;
 
+  /// Importe avec chrono
   Future<bool> importFromExcel() async {
     _isLoading = true;
     _error = null;
+    _totalParsed = 0;
     notifyListeners();
 
     try {
@@ -27,16 +32,23 @@ class ProductProvider extends ChangeNotifier {
         return false;
       }
 
+      final stopwatch = Stopwatch()..start();
+
       final List<Product> parsed =
           await ExcelService.parseExcelFile(file);
 
+      stopwatch.stop();
+
       _products = parsed;
+      _totalParsed = parsed.length;
       _isLoading = false;
       _error = null;
       notifyListeners();
 
       if (kDebugMode) {
-        print('${_products.length} produits importes avec succes.');
+        print(
+          '${parsed.length} produits en ${stopwatch.elapsedMilliseconds}ms',
+        );
       }
       return true;
     } catch (e) {
@@ -46,22 +58,20 @@ class ProductProvider extends ChangeNotifier {
       notifyListeners();
 
       if (kDebugMode) {
-        print('Erreur import: $e');
+        print('Erreur: $e');
       }
       return false;
     }
   }
 
   Product? findProductByBarcode(String barcode) {
-    try {
-      return _products.firstWhere(
-        (product) =>
-            product.barcode.trim().toLowerCase() ==
-            barcode.trim().toLowerCase(),
-      );
-    } catch (_) {
-      return null;
+    final String bc = barcode.trim().toLowerCase();
+    for (int i = 0; i < _products.length; i++) {
+      if (_products[i].barcode.trim().toLowerCase() == bc) {
+        return _products[i];
+      }
     }
+    return null;
   }
 
   void clearDatabase() {
