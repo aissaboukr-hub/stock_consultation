@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/product_provider.dart';
 import 'scanner_screen.dart';
+import 'search_screen.dart';
 
 class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
@@ -13,7 +14,10 @@ class HomeScreen extends StatelessWidget {
       appBar: AppBar(
         title: const Text(
           'Consultation de Stock',
-          style: TextStyle(fontWeight: FontWeight.w600, color: Colors.white),
+          style: TextStyle(
+            fontWeight: FontWeight.w600,
+            color: Colors.white,
+          ),
         ),
         centerTitle: true,
         backgroundColor: const Color(0xFF1A237E),
@@ -41,6 +45,8 @@ class HomeScreen extends StatelessWidget {
                 const SizedBox(height: 28),
                 _buildStatusCard(provider),
                 const SizedBox(height: 28),
+
+                // Bouton Importer
                 SizedBox(
                   width: double.infinity,
                   height: 56,
@@ -74,7 +80,10 @@ class HomeScreen extends StatelessWidget {
                     ),
                   ),
                 ),
+
                 const SizedBox(height: 16),
+
+                // Bouton Scanner
                 SizedBox(
                   width: double.infinity,
                   height: 56,
@@ -86,8 +95,7 @@ class HomeScreen extends StatelessWidget {
                                   builder: (_) => const ScannerScreen()),
                             )
                         : null,
-                    icon:
-                        const Icon(Icons.qr_code_scanner_rounded, size: 24),
+                    icon: const Icon(Icons.qr_code_scanner_rounded, size: 24),
                     label: const Text(
                       'Scanner un produit',
                       style: TextStyle(fontSize: 16),
@@ -106,7 +114,43 @@ class HomeScreen extends StatelessWidget {
                     ),
                   ),
                 ),
+
                 const SizedBox(height: 16),
+
+                // NOUVEAU : Bouton Rechercher
+                SizedBox(
+                  width: double.infinity,
+                  height: 56,
+                  child: ElevatedButton.icon(
+                    onPressed: provider.isDatabaseLoaded && !provider.isLoading
+                        ? () => Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                  builder: (_) => const SearchScreen()),
+                            )
+                        : null,
+                    icon: const Icon(Icons.search_rounded, size: 24),
+                    label: const Text(
+                      'Rechercher un produit',
+                      style: TextStyle(fontSize: 16),
+                    ),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: provider.isDatabaseLoaded
+                          ? const Color(0xFF1565C0)
+                          : Colors.grey.shade400,
+                      foregroundColor: Colors.white,
+                      disabledBackgroundColor: Colors.grey.shade300,
+                      disabledForegroundColor: Colors.grey.shade500,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(14),
+                      ),
+                      elevation: provider.isDatabaseLoaded ? 2 : 0,
+                    ),
+                  ),
+                ),
+
+                const SizedBox(height: 16),
+
                 if (provider.isDatabaseLoaded)
                   TextButton.icon(
                     onPressed: () {
@@ -118,14 +162,15 @@ class HomeScreen extends StatelessWidget {
                         ),
                       );
                     },
-                    icon:
-                        const Icon(Icons.delete_outline, color: Colors.red),
+                    icon: const Icon(Icons.delete_outline, color: Colors.red),
                     label: const Text(
                       'Reinitialiser',
                       style: TextStyle(color: Colors.red),
                     ),
                   ),
+
                 const Spacer(),
+
                 Text(
                   'v1.0 - Consultation de Stock',
                   style: TextStyle(

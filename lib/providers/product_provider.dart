@@ -7,21 +7,16 @@ class ProductProvider extends ChangeNotifier {
   List<Product> _products = [];
   bool _isLoading = false;
   String? _error;
-  int _totalParsed = 0;
 
-  // Getters
   List<Product> get products => List.unmodifiable(_products);
   bool get isDatabaseLoaded => _products.isNotEmpty;
   int get productCount => _products.length;
   bool get isLoading => _isLoading;
   String? get error => _error;
-  int get totalParsed => _totalParsed;
 
-  /// Importe avec chrono
   Future<bool> importFromExcel() async {
     _isLoading = true;
     _error = null;
-    _totalParsed = 0;
     notifyListeners();
 
     try {
@@ -33,22 +28,16 @@ class ProductProvider extends ChangeNotifier {
       }
 
       final stopwatch = Stopwatch()..start();
-
-      final List<Product> parsed =
-          await ExcelService.parseExcelFile(file);
-
+      final List<Product> parsed = await ExcelService.parseExcelFile(file);
       stopwatch.stop();
 
       _products = parsed;
-      _totalParsed = parsed.length;
       _isLoading = false;
       _error = null;
       notifyListeners();
 
       if (kDebugMode) {
-        print(
-          '${parsed.length} produits en ${stopwatch.elapsedMilliseconds}ms',
-        );
+        print('${parsed.length} produits en ${stopwatch.elapsedMilliseconds}ms');
       }
       return true;
     } catch (e) {
@@ -72,6 +61,18 @@ class ProductProvider extends ChangeNotifier {
       }
     }
     return null;
+  }
+
+  /// Recherche par designation ou code-barres
+  List<Product> searchProducts(String query) {
+    if (query.trim().isEmpty) return [];
+
+    final String searchTerm = query.trim().toLowerCase();
+
+    return _products.where((product) {
+      return product.designation.toLowerCase().contains(searchTerm) ||
+             product.barcode.toLowerCase().contains(searchTerm);
+    }).toList();
   }
 
   void clearDatabase() {
