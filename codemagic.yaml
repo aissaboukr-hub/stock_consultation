@@ -31,11 +31,11 @@ workflows:
 
       - name: Build Android App Bundle (Release)
         script: |
-          flutter build appbundle --release --build-name=1.0.0 --build-number=$BUILD_NUMBER
+          flutter build appbundle --release
 
       - name: Build Android APK (Release)
         script: |
-          flutter build apk --release 
+          flutter build apk --release --no-split-per-abi
 
       - name: Build iOS (Release)
         script: |
