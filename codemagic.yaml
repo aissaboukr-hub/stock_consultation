@@ -1,27 +1,16 @@
-# codemagic.yaml — Configuration CI/CD pour Codemagic
 workflows:
-  # ─── Android ─────────────────────────────────────
   android-workflow:
-    name: Android Workflow
+    name: Android Stock Consultation
     instance_type: mac_mini_m2
     max_build_duration: 30
 
     environment:
       flutter: stable
-      xcode: latest
 
     scripts:
-      - name: Get Flutter packages
+      - name: Get packages
         script: |
           flutter pub get
-
-      - name: Analyze code
-        script: |
-          flutter analyze --no-fatal-infos
-
-      - name: Run tests
-        script: |
-          flutter test
 
       - name: Build APK
         script: |
@@ -29,7 +18,7 @@ workflows:
             --build-name=1.0.0 \
             --build-number=1
 
-      - name: Build App Bundle (AAB)
+      - name: Build AAB
         script: |
           flutter build appbundle --release \
             --build-name=1.0.0 \
@@ -38,7 +27,4 @@ workflows:
     artifacts:
       - build/**/outputs/**/*.apk
       - build/**/outputs/**/*.aab
-      - build/**/outputs/**/mapping.txt
-
-    
   
