@@ -1,47 +1,47 @@
 workflows:
-  android-workflow:
+  flutter-app-workflow:
     name: Android Stock Consultation
-    max_build_duration: 30
-    instance_type: mac_mini_m2
+    instance_type: mac_mini_m1
+    max_build_duration: 60
 
     environment:
       flutter: stable
-      java: jdk_17
+      xcode: latest
+      cocoapods: default
+      groups:
+        - keystore_credentials
+        - apple_auth
+
+    triggering:
+      events:
+        - push
+        - pull_request
+      branch_patterns:
+        - pattern: 'main'
+          include: true
 
     scripts:
-      - name: Get packages then clean iOS
+      - name: Setup Flutter & Dependencies
         script: |
-          flutter config --no-enable-ios
-          flutter config --no-enable-web
-          flutter config --no-enable-macos
-          flutter config --no-enable-linux
-          flutter config --no-enable-windows
           flutter pub get
-          rm -rf ios/
-          rm -rf macos/ web/ linux/ windows/
-          rm -f .flutter-plugins
-          rm -f .flutter-plugins-dependencies
 
-      - name: Build APK
+      - name: Code Generation (Build Runner)
         script: |
-          flutter build apk --release \
-            --build-name=1.0.0 \
-            --build-number=1
+          flutter pub run build_runner build --delete-conflicting-outputs
 
-      - name: Build AAB
+      - name: Build Android App Bundle (Release)
         script: |
-          flutter build appbundle --release \
-            --build-name=1.0.0 \
-            --build-number=1
+          flutter build appbundle --release --build-name=1.0.0 --build-number=$BUILD_NUMBER
+
+      - name: Build Android APK (Release)
+        script: |
+          flutter build apk --release --build-name=1.0.0 --build-number=$BUILD_NUMBER
+
+      - name: Build iOS (Release)
+        script: |
+          flutter build ios --release --no-codesign
 
     artifacts:
-      - build/app/outputs/flutter-apk/*.apk
       - build/app/outputs/bundle/release/*.aab
-
-    publishing:
-      email:
-        recipients:
-          - votre-email@example.com
-        notify:
-          success: true
-          failure: true
+      - build/app/outputs/flutter-apk/*.apk
+      - build/ios/iphoneos/*.ipa
