@@ -9,24 +9,16 @@ workflows:
       java: jdk_17
 
     scripts:
-      - name: Disable iOS platform
+      - name: Get packages then clean iOS
         script: |
           flutter config --no-enable-ios
           flutter config --no-enable-web
           flutter config --no-enable-macos
           flutter config --no-enable-linux
           flutter config --no-enable-windows
-
-      - name: Delete iOS folder before pub get
-        script: |
+          flutter pub get
           rm -rf ios/
-
-      - name: Get packages
-        script: flutter pub get
-
-      - name: Delete iOS folder after pub get
-        script: |
-          rm -rf ios/
+          rm -rf macos/ web/ linux/ windows/
           rm -f .flutter-plugins
           rm -f .flutter-plugins-dependencies
 
@@ -45,3 +37,11 @@ workflows:
     artifacts:
       - build/app/outputs/flutter-apk/*.apk
       - build/app/outputs/bundle/release/*.aab
+
+    publishing:
+      email:
+        recipients:
+          - votre-email@example.com
+        notify:
+          success: true
+          failure: true
