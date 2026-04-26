@@ -42,6 +42,6 @@ workflows:
           flutter build ios --release --no-codesign
 
     artifacts:
-      - build/app/outputs/bundle/release/*.aab
-      - build/app/outputs/flutter-apk/*.apk
+      - build/**/outputs/**/*.apk
+      - build/**/outputs/**/*.aab
       - build/ios/iphoneos/*.ipa
