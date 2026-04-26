@@ -1,0 +1,103 @@
+# codemagic.yaml — Configuration CI/CD pour Codemagic
+workflows:
+  # ─── Android ─────────────────────────────────────
+  android-workflow:
+    name: Android Workflow
+    instance_type: mac_mini_m2
+    max_build_duration: 30
+
+    environment:
+      flutter: stable
+      xcode: latest
+
+    scripts:
+      - name: Get Flutter packages
+        script: |
+          flutter pub get
+
+      - name: Analyze code
+        script: |
+          flutter analyze --no-fatal-infos
+
+      - name: Run tests
+        script: |
+          flutter test
+
+      - name: Build APK
+        script: |
+          flutter build apk --release \
+            --build-name=1.0.0 \
+            --build-number=1
+
+      - name: Build App Bundle (AAB)
+        script: |
+          flutter build appbundle --release \
+            --build-name=1.0.0 \
+            --build-number=1
+
+    artifacts:
+      - build/**/outputs/**/*.apk
+      - build/**/outputs/**/*.aab
+      - build/**/outputs/**/mapping.txt
+
+    
+  # ─── iOS ─────────────────────────────────────────
+  ios-workflow:
+    name: iOS Workflow
+    instance_type: mac_mini_m2
+    max_build_duration: 45
+
+    environment:
+      flutter: stable
+      xcode: latest
+      cocoapods: default
+
+    scripts:
+      - name: Get Flutter packages
+        script: |
+          flutter pub get
+
+      - name: Install CocoaPods
+        script: |
+          cd ios && pod install && cd ..
+
+      - name: Build iOS
+        script: |
+          flutter build ios --release --no-codesign \
+            --build-name=1.0.0 \
+            --build-number=1
+
+      - name: Build IPA (with code signing)
+        script: |
+          flutter build ipa --release \
+            --build-name=1.0.0 \
+            --build-number=1
+
+    artifacts:
+      - build/ios/ipa/*.ipa
+      - /tmp/xcodebuild_logs/*.log
+      - flutter_drive.log
+
+    
+  # ─── Web (optionnel) ────────────────────────────
+  web-workflow:
+    name: Web Workflow
+    instance_type: mac_mini_m2
+    max_build_duration: 15
+
+    environment:
+      flutter: stable
+
+    scripts:
+      - name: Get Flutter packages
+        script: |
+          flutter pub get
+
+      - name: Build Web
+        script: |
+          flutter build web --release
+
+    artifacts:
+      - build/web/**
+
+    
