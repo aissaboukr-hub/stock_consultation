@@ -35,7 +35,7 @@ workflows:
 
       - name: Build Android APK (Release)
         script: |
-          flutter build apk --release --build-name=1.0.0 --build-number=$BUILD_NUMBER
+          flutter build apk --release 
 
       - name: Build iOS (Release)
         script: |
