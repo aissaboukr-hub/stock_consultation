@@ -53,10 +53,15 @@ workflows:
       cocoapods: default
 
     scripts:
-      - name: Get Flutter packages
+      - name: Prepare iOS
+        script: |
+          flutter precache --ios
+      - name: Get packages
         script: |
           flutter pub get
-
+      - name: Generate Xcode project
+        script: |
+          flutter build ios --config-only
       - name: Install CocoaPods
         script: |
           cd ios && pod install && cd ..
