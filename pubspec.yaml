@@ -18,7 +18,7 @@ dependencies:
   # Scanner code-barres
   mobile_scanner: ^5.2.3
   # Excel import/export
-  excel: ^4.0.2
+  excel: ^4.0.6
   # Sélecteur de fichiers
   file_picker: ^10.3.10
   # Partage
