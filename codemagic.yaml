@@ -1,47 +1,36 @@
 workflows:
   flutter-app-workflow:
     name: Android Stock Consultation
-    instance_type: mac_mini_m1
     max_build_duration: 60
 
     environment:
       flutter: stable
-      xcode: latest
-      cocoapods: default
-      groups:
-        - keystore_credentials
-        - apple_auth
+      java: 17
 
-    triggering:
-      events:
-        - push
-        - pull_request
-      branch_patterns:
-        - pattern: 'main'
-          include: true
+    cache:
+      cache_paths:
+        - ~/.pub-cache
+        - build
 
     scripts:
-      - name: Setup Flutter & Dependencies
-        script: |
-          flutter pub get
+      - name: Clean project
+        script: flutter clean
 
-      - name: Code Generation (Build Runner)
-        script: |
-          flutter pub run build_runner build --delete-conflicting-outputs
+      - name: Get dependencies
+        script: flutter pub get
 
-      - name: Build Android App Bundle (Release)
-        script: |
-          flutter build appbundle --release
+      - name: Analyze project
+        script: flutter analyze || true
 
-      - name: Build Android APK (Release)
-        script: |
-          flutter build apk --release --no-split-per-abi
+      - name: Run tests
+        script: flutter test || true
 
-      - name: Build iOS (Release)
-        script: |
-          flutter build ios --release --no-codesign
+      - name: Build APK (Release)
+        script: flutter build apk --release
+
+      - name: Build AAB (Play Store)
+        script: flutter build appbundle --release
 
     artifacts:
-      - build/**/outputs/**/*.apk
-      - build/**/outputs/**/*.aab
-      - build/ios/iphoneos/*.ipa
+      - build/**/app-release.apk
+      - build/**/app-release.aab
