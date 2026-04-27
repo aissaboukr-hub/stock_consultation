@@ -33,14 +33,13 @@ class _GoogleSheetsScreenState extends State<GoogleSheetsScreen> {
   Future<void> _checkConnection() async {
     final String input = _urlController.text.trim();
     if (input.isEmpty) {
-      _showStatus('Veuillez entrer un ID ou une URL de Google Sheets.', true);
+      _showStatus('Veuillez entrer un ID ou une URL.', true);
       return;
     }
 
     final String? id = GoogleSheetsService.extractSpreadsheetId(input);
     if (id == null) {
-      _showStatus(
-          'Format invalide. Entrez l\'URL ou l\'ID du spreadsheet.', true);
+      _showStatus('Format invalide.', true);
       return;
     }
 
@@ -52,24 +51,20 @@ class _GoogleSheetsScreenState extends State<GoogleSheetsScreen> {
     });
 
     try {
-      // Extraire les en-têtes réelles pour vérification
       final result = await GoogleSheetsService.testConnectionAndHeaders(
         id,
         sheetName: _sheetNameController.text.trim(),
       );
+
+      // Decider automatiquement si cocher ou non
+      final bool autoDetectHasHeaders = result['hasHeaders'] ?? false;
 
       setState(() {
         _isChecking = false;
         _isStatusError = !result['success'];
         _statusMessage = result['message'];
         _detectedHeaders = result['headers'] as List<String>?;
-        
-        // Si pas d'en-têtes détectées, désactiver le toggle par défaut
-        if (_detectedHeaders != null && !_detectedHeaders!.isEmpty) {
-          if (_detectedHeaders!.every((h) => RegExp(r'^\d+$').hasMatch(h))) {
-            _hasHeaders = false;
-          }
-        }
+        _hasHeaders = autoDetectHasHeaders;
       });
     } catch (e) {
       setState(() {
