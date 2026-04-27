@@ -2,18 +2,42 @@ import 'dart:io';
 import 'package:flutter/foundation.dart';
 import '../models/product.dart';
 import '../services/excel_service.dart';
+import '../services/storage_service.dart';
 
 class ProductProvider extends ChangeNotifier {
   List<Product> _products = [];
   bool _isLoading = false;
   String? _error;
+  String? _lastImportDate;
 
+  // Getters
   List<Product> get products => List.unmodifiable(_products);
   bool get isDatabaseLoaded => _products.isNotEmpty;
   int get productCount => _products.length;
   bool get isLoading => _isLoading;
   String? get error => _error;
+  String? get lastImportDate => _lastImportDate;
 
+  /// Charger les produits sauvegardés au demarrage
+  Future<void> loadSavedProducts() async {
+    _isLoading = true;
+    notifyListeners();
+
+    try {
+      _products = await StorageService.loadProducts();
+      _lastImportDate = StorageService.getLastImportDate();
+    } catch (e) {
+      _products = [];
+      if (kDebugMode) {
+        print('Erreur chargement: $e');
+      }
+    }
+
+    _isLoading = false;
+    notifyListeners();
+  }
+
+  /// Importer depuis Excel + sauvegarder
   Future<bool> importFromExcel() async {
     _isLoading = true;
     _error = null;
@@ -31,19 +55,23 @@ class ProductProvider extends ChangeNotifier {
       final List<Product> parsed = await ExcelService.parseExcelFile(file);
       stopwatch.stop();
 
+      // Sauvegarder dans Hive
+      await StorageService.saveProducts(parsed);
+
       _products = parsed;
+      _lastImportDate = StorageService.getLastImportDate();
       _isLoading = false;
       _error = null;
       notifyListeners();
 
       if (kDebugMode) {
         print('${parsed.length} produits en ${stopwatch.elapsedMilliseconds}ms');
+        print('Sauvegarde effectuee.');
       }
       return true;
     } catch (e) {
       _isLoading = false;
       _error = e.toString();
-      _products = [];
       notifyListeners();
 
       if (kDebugMode) {
@@ -75,9 +103,12 @@ class ProductProvider extends ChangeNotifier {
     }).toList();
   }
 
-  void clearDatabase() {
+  /// Reinitialiser + effacer la sauvegarde
+  Future<void> clearDatabase() async {
+    await StorageService.clearProducts();
     _products = [];
     _error = null;
+    _lastImportDate = null;
     notifyListeners();
   }
 }

@@ -4,8 +4,22 @@ import '../providers/product_provider.dart';
 import 'scanner_screen.dart';
 import 'search_screen.dart';
 
-class HomeScreen extends StatelessWidget {
+class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
+
+  @override
+  State<HomeScreen> createState() => _HomeScreenState();
+}
+
+class _HomeScreenState extends State<HomeScreen> {
+  @override
+  void initState() {
+    super.initState();
+    // Charger les produits sauvegardes au demarrage
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      context.read<ProductProvider>().loadSavedProducts();
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -14,10 +28,7 @@ class HomeScreen extends StatelessWidget {
       appBar: AppBar(
         title: const Text(
           'Consultation de Stock',
-          style: TextStyle(
-            fontWeight: FontWeight.w600,
-            color: Colors.white,
-          ),
+          style: TextStyle(fontWeight: FontWeight.w600, color: Colors.white),
         ),
         centerTitle: true,
         backgroundColor: const Color(0xFF1A237E),
@@ -80,7 +91,6 @@ class HomeScreen extends StatelessWidget {
                     ),
                   ),
                 ),
-
                 const SizedBox(height: 16),
 
                 // Bouton Scanner
@@ -88,18 +98,17 @@ class HomeScreen extends StatelessWidget {
                   width: double.infinity,
                   height: 56,
                   child: ElevatedButton.icon(
-                    onPressed: provider.isDatabaseLoaded && !provider.isLoading
-                        ? () => Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                  builder: (_) => const ScannerScreen()),
-                            )
-                        : null,
+                    onPressed:
+                        provider.isDatabaseLoaded && !provider.isLoading
+                            ? () => Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                      builder: (_) => const ScannerScreen()),
+                                )
+                            : null,
                     icon: const Icon(Icons.qr_code_scanner_rounded, size: 24),
-                    label: const Text(
-                      'Scanner un produit',
-                      style: TextStyle(fontSize: 16),
-                    ),
+                    label: const Text('Scanner un produit',
+                        style: TextStyle(fontSize: 16)),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: provider.isDatabaseLoaded
                           ? const Color(0xFF43A047)
@@ -114,26 +123,24 @@ class HomeScreen extends StatelessWidget {
                     ),
                   ),
                 ),
-
                 const SizedBox(height: 16),
 
-                // NOUVEAU : Bouton Rechercher
+                // Bouton Rechercher
                 SizedBox(
                   width: double.infinity,
                   height: 56,
                   child: ElevatedButton.icon(
-                    onPressed: provider.isDatabaseLoaded && !provider.isLoading
-                        ? () => Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                  builder: (_) => const SearchScreen()),
-                            )
-                        : null,
+                    onPressed:
+                        provider.isDatabaseLoaded && !provider.isLoading
+                            ? () => Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                      builder: (_) => const SearchScreen()),
+                                )
+                            : null,
                     icon: const Icon(Icons.search_rounded, size: 24),
-                    label: const Text(
-                      'Rechercher un produit',
-                      style: TextStyle(fontSize: 16),
-                    ),
+                    label: const Text('Rechercher un produit',
+                        style: TextStyle(fontSize: 16)),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: provider.isDatabaseLoaded
                           ? const Color(0xFF1565C0)
@@ -148,25 +155,25 @@ class HomeScreen extends StatelessWidget {
                     ),
                   ),
                 ),
-
                 const SizedBox(height: 16),
 
+                // Bouton Reinitialiser
                 if (provider.isDatabaseLoaded)
                   TextButton.icon(
-                    onPressed: () {
-                      provider.clearDatabase();
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text('Base de donnees reinitialisee'),
-                          behavior: SnackBarBehavior.floating,
-                        ),
-                      );
+                    onPressed: () async {
+                      await provider.clearDatabase();
+                      if (context.mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text('Base de donnees reinitialisee'),
+                            behavior: SnackBarBehavior.floating,
+                          ),
+                        );
+                      }
                     },
                     icon: const Icon(Icons.delete_outline, color: Colors.red),
-                    label: const Text(
-                      'Reinitialiser',
-                      style: TextStyle(color: Colors.red),
-                    ),
+                    label: const Text('Reinitialiser',
+                        style: TextStyle(color: Colors.red)),
                   ),
 
                 const Spacer(),
@@ -199,7 +206,7 @@ class HomeScreen extends StatelessWidget {
       iconBg = Colors.blue;
       icon = Icons.hourglass_empty_rounded;
       title = 'Chargement...';
-      subtitle = 'Lecture du fichier en cours';
+      subtitle = 'Lecture des donnees en cours';
     } else if (provider.error != null) {
       cardColor = Colors.red.shade50;
       iconBg = Colors.red;
@@ -210,8 +217,10 @@ class HomeScreen extends StatelessWidget {
       cardColor = Colors.green.shade50;
       iconBg = Colors.green;
       icon = Icons.check_circle_outline_rounded;
-      title = 'Base de donnees importee';
-      subtitle = '${provider.productCount} produits charges';
+      title = 'Base de donnees chargee';
+      subtitle = provider.lastImportDate != null
+          ? '${provider.productCount} produits - Importe le ${provider.lastImportDate}'
+          : '${provider.productCount} produits charges';
     } else {
       cardColor = Colors.grey.shade100;
       iconBg = Colors.grey;
@@ -278,7 +287,7 @@ class HomeScreen extends StatelessWidget {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
-              '${provider.productCount} produits importes avec succes !'),
+              '${provider.productCount} produits importes et sauvegardes !'),
           backgroundColor: Colors.green,
           behavior: SnackBarBehavior.floating,
           shape: RoundedRectangleBorder(

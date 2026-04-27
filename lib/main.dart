@@ -2,25 +2,33 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'providers/product_provider.dart';
+import 'services/storage_service.dart';
 import 'screens/home_screen.dart';
 
-void main() {
+void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  // Initialiser Hive (stockage local)
+  await StorageService.init();
+
   SystemChrome.setSystemUIOverlayStyle(
     const SystemUiOverlayStyle(
       statusBarColor: Colors.transparent,
       statusBarIconBrightness: Brightness.light,
     ),
   );
+
   SystemChrome.setPreferredOrientations([
     DeviceOrientation.portraitUp,
     DeviceOrientation.portraitDown,
   ]);
+
   runApp(const StockConsultationApp());
 }
 
 class StockConsultationApp extends StatelessWidget {
   const StockConsultationApp({super.key});
+
   @override
   Widget build(BuildContext context) {
     return ChangeNotifierProvider(
