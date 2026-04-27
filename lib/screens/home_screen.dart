@@ -16,7 +16,6 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   void initState() {
     super.initState();
-    // Charger les produits sauvegardes au demarrage
     WidgetsBinding.instance.addPostFrameCallback((_) {
       context.read<ProductProvider>().loadSavedProducts();
     });
@@ -35,15 +34,36 @@ class _HomeScreenState extends State<HomeScreen> {
         backgroundColor: const Color(0xFF1A237E),
         elevation: 0,
         actions: [
-          // Icône Paramètres
+          // Bouton sync manuel (visible si Google Sheets)
+          Consumer<ProductProvider>(
+            builder: (context, provider, _) {
+              if (!provider.isGoogleSheets || !provider.isDatabaseLoaded) {
+                return const SizedBox.shrink();
+              }
+              return IconButton(
+                icon: provider.isLoading
+                    ? const SizedBox(
+                        width: 20,
+                        height: 20,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: Colors.white,
+                        ),
+                      )
+                    : const Icon(Icons.sync_rounded, color: Colors.white),
+                tooltip: 'Synchroniser maintenant',
+                onPressed: provider.isLoading
+                    ? null
+                    : () => _handleSync(context, provider),
+              );
+            },
+          ),
           IconButton(
             icon: const Icon(Icons.settings_rounded, color: Colors.white),
             onPressed: () {
               Navigator.push(
                 context,
-                MaterialPageRoute(
-                  builder: (_) => const SettingsScreen(),
-                ),
+                MaterialPageRoute(builder: (_) => const SettingsScreen()),
               );
             },
           ),
@@ -77,18 +97,17 @@ class _HomeScreenState extends State<HomeScreen> {
                   width: double.infinity,
                   height: 56,
                   child: ElevatedButton.icon(
-                    onPressed: provider.isDatabaseLoaded && !provider.isLoading
-                        ? () => Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                  builder: (_) => const ScannerScreen()),
-                            )
-                        : null,
+                    onPressed:
+                        provider.isDatabaseLoaded && !provider.isLoading
+                            ? () => Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                      builder: (_) => const ScannerScreen()),
+                                )
+                            : null,
                     icon: const Icon(Icons.qr_code_scanner_rounded, size: 24),
-                    label: const Text(
-                      'Scanner un produit',
-                      style: TextStyle(fontSize: 16),
-                    ),
+                    label: const Text('Scanner un produit',
+                        style: TextStyle(fontSize: 16)),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: provider.isDatabaseLoaded
                           ? const Color(0xFF43A047)
@@ -110,18 +129,17 @@ class _HomeScreenState extends State<HomeScreen> {
                   width: double.infinity,
                   height: 56,
                   child: ElevatedButton.icon(
-                    onPressed: provider.isDatabaseLoaded && !provider.isLoading
-                        ? () => Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                  builder: (_) => const SearchScreen()),
-                            )
-                        : null,
+                    onPressed:
+                        provider.isDatabaseLoaded && !provider.isLoading
+                            ? () => Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                      builder: (_) => const SearchScreen()),
+                                )
+                            : null,
                     icon: const Icon(Icons.search_rounded, size: 24),
-                    label: const Text(
-                      'Rechercher un produit',
-                      style: TextStyle(fontSize: 16),
-                    ),
+                    label: const Text('Rechercher un produit',
+                        style: TextStyle(fontSize: 16)),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: provider.isDatabaseLoaded
                           ? const Color(0xFF1565C0)
@@ -139,12 +157,15 @@ class _HomeScreenState extends State<HomeScreen> {
 
                 const Spacer(),
 
-                // Info rapide
+                // Info sync
+                if (provider.isGoogleSheets && provider.isDatabaseLoaded)
+                  _buildSyncInfo(provider),
+
                 if (!provider.isDatabaseLoaded)
                   Padding(
                     padding: const EdgeInsets.only(bottom: 16),
                     child: Text(
-                      'Appuyez sur l\'icone parametres en haut a droite pour importer votre fichier Excel.',
+                      'Appuyez sur l\'icone parametres pour importer vos donnees.',
                       textAlign: TextAlign.center,
                       style: TextStyle(
                         fontSize: 13,
@@ -156,10 +177,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
                 Text(
                   'v1.0 - Consultation de Stock',
-                  style: TextStyle(
-                    color: Colors.grey.shade400,
-                    fontSize: 12,
-                  ),
+                  style: TextStyle(color: Colors.grey.shade400, fontSize: 12),
                 ),
                 const SizedBox(height: 8),
               ],
@@ -192,17 +210,19 @@ class _HomeScreenState extends State<HomeScreen> {
     } else if (provider.isDatabaseLoaded) {
       cardColor = Colors.green.shade50;
       iconBg = Colors.green;
-      icon = Icons.check_circle_outline_rounded;
+      icon = provider.isGoogleSheets
+          ? Icons.cloud_done_rounded
+          : Icons.check_circle_outline_rounded;
       title = 'Base de donnees chargee';
-      subtitle = provider.lastImportDate != null
-          ? '${provider.productCount} produits - Importe le ${provider.lastImportDate}'
+      subtitle = provider.isGoogleSheets
+          ? '${provider.productCount} produits (Google Sheets)'
           : '${provider.productCount} produits charges';
     } else {
       cardColor = Colors.grey.shade100;
       iconBg = Colors.grey;
       icon = Icons.info_outline_rounded;
       title = 'Aucune donnee importee';
-      subtitle = 'Importez un fichier .xlsx depuis les parametres';
+      subtitle = 'Importez depuis les parametres';
     }
 
     return Container(
@@ -228,29 +248,93 @@ class _HomeScreenState extends State<HomeScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  title,
-                  style: TextStyle(
-                    fontWeight: FontWeight.w600,
-                    fontSize: 15,
-                    color: iconBg,
-                  ),
-                ),
+                Text(title,
+                    style: TextStyle(
+                        fontWeight: FontWeight.w600,
+                        fontSize: 15,
+                        color: iconBg)),
                 const SizedBox(height: 4),
-                Text(
-                  subtitle,
-                  style: TextStyle(
-                    fontSize: 13,
-                    color: iconBg.withOpacity(0.8),
-                  ),
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                ),
+                Text(subtitle,
+                    style: TextStyle(
+                        fontSize: 13, color: iconBg.withOpacity(0.8)),
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis),
               ],
             ),
           ),
         ],
       ),
     );
+  }
+
+  Widget _buildSyncInfo(ProductProvider provider) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(14),
+      margin: const EdgeInsets.only(bottom: 16),
+      decoration: BoxDecoration(
+        color: Colors.blue.shade50,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.blue.shade200),
+      ),
+      child: Row(
+        children: [
+          Icon(Icons.cloud_sync_rounded,
+              color: Colors.blue.shade600, size: 20),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  provider.googleSheetsStatus ??
+                      'Source: Google Sheets',
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                    color: Colors.blue.shade700,
+                  ),
+                ),
+                if (provider.lastSyncDate != null)
+                  Text(
+                    'Derniere sync: ${provider.lastSyncDate}',
+                    style: TextStyle(
+                      fontSize: 11,
+                      color: Colors.blue.shade500,
+                    ),
+                  ),
+                if (provider.syncInterval > 0)
+                  Text(
+                    'Auto-sync: toutes les ${provider.syncInterval} min',
+                    style: TextStyle(
+                      fontSize: 11,
+                      color: Colors.blue.shade500,
+                    ),
+                  ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _handleSync(
+      BuildContext context, ProductProvider provider) async {
+    final success = await provider.syncFromGoogleSheets();
+    if (!context.mounted) return;
+
+    if (success) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+              'Synchronise: ${provider.productCount} produits mis a jour !'),
+          backgroundColor: Colors.green,
+          behavior: SnackBarBehavior.floating,
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+        ),
+      );
+    }
   }
 }

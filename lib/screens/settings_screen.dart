@@ -19,19 +19,18 @@ class SettingsScreen extends StatelessWidget {
         backgroundColor: const Color(0xFF1A237E),
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios_new_rounded,
-              color: Colors.white),
+          icon: const Icon(Icons.arrow_back_ios_new_rounded, color: Colors.white),
           onPressed: () => Navigator.pop(context),
         ),
       ),
       body: Consumer<ProductProvider>(
         builder: (context, provider, _) {
-          return Padding(
+          return SingleChildScrollView(
             padding: const EdgeInsets.all(24.0),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Titre section
+                // ─── Section Base de données ───
                 Text(
                   'BASE DE DONNEES',
                   style: TextStyle(
@@ -43,11 +42,10 @@ class SettingsScreen extends StatelessWidget {
                 ),
                 const SizedBox(height: 16),
 
-                // Carte info BDD
                 _buildDatabaseCard(provider),
                 const SizedBox(height: 28),
 
-                // Titre section Sources
+                // ─── Section Sources d'import ───
                 Text(
                   'SOURCES D\'IMPORT',
                   style: TextStyle(
@@ -64,31 +62,22 @@ class SettingsScreen extends StatelessWidget {
                   width: double.infinity,
                   height: 56,
                   child: ElevatedButton.icon(
-                    onPressed: provider.isLoading
-                        ? null
-                        : () => _handleImportExcel(context, provider),
+                    onPressed: provider.isLoading ? null : () => _handleImportExcel(context, provider),
                     icon: provider.isLoading
                         ? const SizedBox(
                             width: 22,
                             height: 22,
-                            child: CircularProgressIndicator(
-                              strokeWidth: 2.5,
-                              color: Colors.white,
-                            ),
+                            child: CircularProgressIndicator(strokeWidth: 2.5, color: Colors.white),
                           )
                         : const Icon(Icons.file_upload_outlined, size: 24),
                     label: Text(
-                      provider.isLoading
-                          ? 'Importation en cours...'
-                          : 'Importer depuis Excel (.xlsx)',
+                      provider.isLoading ? 'Importation en cours...' : 'Importer depuis Excel (.xlsx)',
                       style: const TextStyle(fontSize: 16),
                     ),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: const Color(0xFF1A237E),
                       foregroundColor: Colors.white,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(14),
-                      ),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
                       elevation: 2,
                     ),
                   ),
@@ -103,31 +92,40 @@ class SettingsScreen extends StatelessWidget {
                     onPressed: () {
                       Navigator.push(
                         context,
-                        MaterialPageRoute(
-                          builder: (_) => const GoogleSheetsScreen(),
-                        ),
+                        MaterialPageRoute(builder: (_) => const GoogleSheetsScreen()),
                       );
                     },
-                    icon: const Icon(Icons.cloud_download_outlined,
-                        color: Color(0xFF1A237E)),
+                    icon: const Icon(Icons.cloud_download_outlined, color: Color(0xFF1A237E)),
                     label: const Text(
                       'Importer depuis Google Sheets',
-                      style:
-                          TextStyle(color: Color(0xFF1A237E), fontSize: 16),
+                      style: TextStyle(color: Color(0xFF1A237E), fontSize: 16),
                     ),
                     style: OutlinedButton.styleFrom(
                       side: const BorderSide(color: Color(0xFF1A237E)),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(14),
-                      ),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
                     ),
                   ),
                 ),
-                const SizedBox(height: 16),
 
-                // Bouton Reinitialiser
+                // ─── Section Synchronisation Auto (si Google Sheets) ───
+                if (provider.isGoogleSheets) ...[
+                  const SizedBox(height: 28),
+                  Text(
+                    'SYNCHRONISATION AUTO',
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w700,
+                      color: Colors.grey.shade500,
+                      letterSpacing: 1.5,
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  _buildSyncIntervalSelector(context, provider),
+                ],
+
+                // ─── Section Gestion ───
                 if (provider.isDatabaseLoaded) ...[
-                  const SizedBox(height: 8),
+                  const SizedBox(height: 28),
                   Text(
                     'GESTION',
                     style: TextStyle(
@@ -143,32 +141,26 @@ class SettingsScreen extends StatelessWidget {
                     height: 56,
                     child: OutlinedButton.icon(
                       onPressed: () => _confirmReset(context, provider),
-                      icon: const Icon(Icons.delete_outline,
-                          color: Colors.red),
+                      icon: const Icon(Icons.delete_outline, color: Colors.red),
                       label: const Text(
                         'Reinitialiser la base de donnees',
-                        style:
-                            TextStyle(color: Colors.red, fontSize: 16),
+                        style: TextStyle(color: Colors.red, fontSize: 16),
                       ),
                       style: OutlinedButton.styleFrom(
                         side: const BorderSide(color: Colors.red),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(14),
-                        ),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
                       ),
                     ),
                   ),
                 ],
 
-                const Spacer(),
+                const SizedBox(height: 32),
 
+                // Footer
                 Center(
                   child: Text(
                     'v1.0 - Consultation de Stock',
-                    style: TextStyle(
-                      color: Colors.grey.shade400,
-                      fontSize: 12,
-                    ),
+                    style: TextStyle(color: Colors.grey.shade400, fontSize: 12),
                   ),
                 ),
                 const SizedBox(height: 8),
@@ -179,6 +171,10 @@ class SettingsScreen extends StatelessWidget {
       ),
     );
   }
+
+  // ─────────────────────────────────────────────────────────────
+  // Widgets et Méthodes
+  // ─────────────────────────────────────────────────────────────
 
   Widget _buildDatabaseCard(ProductProvider provider) {
     final Color cardColor;
@@ -202,12 +198,18 @@ class SettingsScreen extends StatelessWidget {
     } else if (provider.isDatabaseLoaded) {
       cardColor = Colors.green.shade50;
       iconBg = Colors.green;
-      icon = Icons.storage_rounded;
-      title =
-          '${provider.productCount} produit${provider.productCount > 1 ? 's' : ''} enregistre${provider.productCount > 1 ? 's' : ''}';
-      subtitle = provider.lastImportDate != null
-          ? 'Importe le ${provider.lastImportDate}'
-          : 'Base de donnees disponible';
+      icon = provider.isGoogleSheets ? Icons.cloud_done_rounded : Icons.storage_rounded;
+      title = '${provider.productCount} produit${provider.productCount > 1 ? 's' : ''} enregistre${provider.productCount > 1 ? 's' : ''}';
+      
+      if (provider.isGoogleSheets) {
+        subtitle = provider.lastSyncDate != null
+            ? 'Google Sheets - Sync: ${provider.lastSyncDate}'
+            : 'Google Sheets - Source active';
+      } else {
+        subtitle = provider.lastImportDate != null
+            ? 'Importe le ${provider.lastImportDate}'
+            : 'Base de donnees disponible';
+      }
     } else {
       cardColor = Colors.grey.shade100;
       iconBg = Colors.grey;
@@ -241,19 +243,12 @@ class SettingsScreen extends StatelessWidget {
               children: [
                 Text(
                   title,
-                  style: TextStyle(
-                    fontWeight: FontWeight.w700,
-                    fontSize: 16,
-                    color: iconBg,
-                  ),
+                  style: TextStyle(fontWeight: FontWeight.w700, fontSize: 16, color: iconBg),
                 ),
                 const SizedBox(height: 4),
                 Text(
                   subtitle,
-                  style: TextStyle(
-                    fontSize: 13,
-                    color: iconBg.withOpacity(0.8),
-                  ),
+                  style: TextStyle(fontSize: 13, color: iconBg.withOpacity(0.8)),
                 ),
               ],
             ),
@@ -263,20 +258,97 @@ class SettingsScreen extends StatelessWidget {
     );
   }
 
-  Future<void> _handleImportExcel(
-      BuildContext context, ProductProvider provider) async {
+  Widget _buildSyncIntervalSelector(BuildContext context, ProductProvider provider) {
+    final intervals = [
+      {'value': 0, 'label': 'Desactivee'},
+      {'value': 5, 'label': 'Toutes les 5 min'},
+      {'value': 15, 'label': 'Toutes les 15 min'},
+      {'value': 30, 'label': 'Toutes les 30 min'},
+      {'value': 60, 'label': 'Toutes les heures'},
+    ];
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.grey.shade300),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const Icon(Icons.autorenew_rounded, color: Color(0xFF1A237E), size: 22),
+              const SizedBox(width: 10),
+              Text(
+                'Frequence de mise a jour',
+                style: TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
+                  color: Colors.grey.shade700,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: intervals.map((interval) {
+              final isSelected = provider.syncInterval == interval['value'];
+              return ChoiceChip(
+                label: Text(
+                  interval['label'] as String,
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: isSelected ? Colors.white : Colors.grey.shade700,
+                  ),
+                ),
+                selected: isSelected,
+                selectedColor: const Color(0xFF1A237E),
+                backgroundColor: Colors.grey.shade100,
+                onSelected: (_) async {
+                  await provider.setSyncInterval(interval['value'] as int);
+                  if (context.mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text(
+                          interval['value'] == 0
+                              ? 'Synchronisation auto desactivee'
+                              : 'Sync: ${interval['label']}',
+                        ),
+                        behavior: SnackBarBehavior.floating,
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                      ),
+                    );
+                  }
+                },
+              );
+            }).toList(),
+          ),
+          const SizedBox(height: 12),
+          Text(
+            'Les donnees seront automatiquement mises a jour depuis Google Sheets.',
+            style: TextStyle(fontSize: 11, color: Colors.grey.shade500),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _handleImportExcel(BuildContext context, ProductProvider provider) async {
     final success = await provider.importFromExcel();
     if (!context.mounted) return;
 
     if (success) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(
-              '${provider.productCount} produits importes et sauvegardes !'),
+          content: Text('${provider.productCount} produits importes et sauvegardes !'),
           backgroundColor: Colors.green,
           behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(10)),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
         ),
       );
     } else if (provider.error != null) {
@@ -285,22 +357,21 @@ class SettingsScreen extends StatelessWidget {
           content: Text('Erreur : ${provider.error}'),
           backgroundColor: Colors.red,
           behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(10)),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
           duration: const Duration(seconds: 5),
         ),
       );
     }
   }
 
-  Future<void> _confirmReset(
-      BuildContext context, ProductProvider provider) async {
+  Future<void> _confirmReset(BuildContext context, ProductProvider provider) async {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
         title: const Text('Reinitialiser ?'),
         content: const Text(
-            'Toutes les donnees importees seront supprimees. Cette action est irreversible.'),
+          'Toutes les donnees importees seront supprimees. Cette action est irreversible.',
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx, false),
