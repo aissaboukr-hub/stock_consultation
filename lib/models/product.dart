@@ -1,19 +1,7 @@
-import 'package:hive/hive.dart';
-
-part 'product.g.dart';
-
-@HiveType(typeId: 0)
-class Product extends HiveObject {
-  @HiveField(0)
+class Product {
   final String barcode;
-
-  @HiveField(1)
   final String designation;
-
-  @HiveField(2)
   final double price;
-
-  @HiveField(3)
   final int quantityAvailable;
 
   Product({
@@ -39,7 +27,6 @@ class Product extends HiveObject {
   String toString() =>
       'Product(barcode: $barcode, name: $designation, price: $price, qty: $quantityAvailable)';
 
-  /// Conversion vers Map (pour le stockage)
   Map<String, dynamic> toMap() {
     return {
       'barcode': barcode,
@@ -49,7 +36,6 @@ class Product extends HiveObject {
     };
   }
 
-  /// Conversion depuis Map
   factory Product.fromMap(Map<String, dynamic> map) {
     return Product(
       barcode: map['barcode'] ?? '',

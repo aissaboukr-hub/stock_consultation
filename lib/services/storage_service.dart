@@ -1,68 +1,68 @@
-import 'package:hive_flutter/hive_flutter.dart';
+import 'dart:convert';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../models/product.dart';
 
 class StorageService {
-  static const String _boxName = 'products';
   static const String _keyProducts = 'product_list';
   static const String _keyTimestamp = 'import_timestamp';
 
-  /// Initialiser Hive
-  static Future<void> init() async {
-    await Hive.initFlutter();
-    await Hive.openBox(_boxName);
-  }
-
   /// Sauvegarder la liste de produits
   static Future<void> saveProducts(List<Product> products) async {
-    final box = Hive.box(_boxName);
+    final prefs = await SharedPreferences.getInstance();
 
     final List<Map<String, dynamic>> productList =
         products.map((p) => p.toMap()).toList();
 
-    await box.put(_keyProducts, productList);
-    await box.put(_keyTimestamp, DateTime.now().toIso8601String());
+    await prefs.setString(_keyProducts, jsonEncode(productList));
+    await prefs.setString(_keyTimestamp, DateTime.now().toIso8601String());
   }
 
-  /// Charger la liste de produits sauvegardée
+  /// Charger la liste de produits sauvegardee
   static Future<List<Product>> loadProducts() async {
-    final box = Hive.box(_boxName);
+    final prefs = await SharedPreferences.getInstance();
 
-    final dynamic rawData = box.get(_keyProducts);
+    final String? jsonString = prefs.getString(_keyProducts);
 
-    if (rawData == null) return [];
+    if (jsonString == null || jsonString.isEmpty) return [];
 
     try {
-      final List<dynamic> productList = rawData as List<dynamic>;
+      final List<dynamic> decoded = jsonDecode(jsonString);
 
-      return productList.map((item) {
+      return decoded.map((item) {
         final Map<String, dynamic> map = Map<String, dynamic>.from(item);
         return Product.fromMap(map);
       }).toList();
     } catch (e) {
-      // Données corrompues, on efface
+      // Donnees corrompues, on efface
       await clearProducts();
       return [];
     }
   }
 
-  /// Vérifier si des produits sont sauvegardés
-  static bool hasProducts() {
-    final box = Hive.box(_boxName);
-    return box.get(_keyProducts) != null;
+  /// Verifier si des produits sont sauvegardes
+  static Future<bool> hasProducts() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getString(_keyProducts) != null;
   }
 
-  /// Obtenir le nombre de produits sauvegardés
-  static int getProductCount() {
-    final box = Hive.box(_boxName);
-    final dynamic rawData = box.get(_keyProducts);
-    if (rawData == null) return 0;
-    return (rawData as List).length;
+  /// Obtenir le nombre de produits sauvegardes
+  static Future<int> getProductCount() async {
+    final prefs = await SharedPreferences.getInstance();
+    final String? jsonString = prefs.getString(_keyProducts);
+    if (jsonString == null || jsonString.isEmpty) return 0;
+
+    try {
+      final List<dynamic> decoded = jsonDecode(jsonString);
+      return decoded.length;
+    } catch (_) {
+      return 0;
+    }
   }
 
   /// Obtenir la date du dernier import
-  static String? getLastImportDate() {
-    final box = Hive.box(_boxName);
-    final String? timestamp = box.get(_keyTimestamp);
+  static Future<String?> getLastImportDate() async {
+    final prefs = await SharedPreferences.getInstance();
+    final String? timestamp = prefs.getString(_keyTimestamp);
     if (timestamp == null) return null;
 
     try {
@@ -77,10 +77,10 @@ class StorageService {
     }
   }
 
-  /// Effacer tous les produits sauvegardés
+  /// Effacer tous les produits sauvegardes
   static Future<void> clearProducts() async {
-    final box = Hive.box(_boxName);
-    await box.delete(_keyProducts);
-    await box.delete(_keyTimestamp);
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove(_keyProducts);
+    await prefs.remove(_keyTimestamp);
   }
 }

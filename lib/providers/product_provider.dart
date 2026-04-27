@@ -10,7 +10,6 @@ class ProductProvider extends ChangeNotifier {
   String? _error;
   String? _lastImportDate;
 
-  // Getters
   List<Product> get products => List.unmodifiable(_products);
   bool get isDatabaseLoaded => _products.isNotEmpty;
   int get productCount => _products.length;
@@ -18,14 +17,14 @@ class ProductProvider extends ChangeNotifier {
   String? get error => _error;
   String? get lastImportDate => _lastImportDate;
 
-  /// Charger les produits sauvegardés au demarrage
+  /// Charger les produits sauvegardes au demarrage
   Future<void> loadSavedProducts() async {
     _isLoading = true;
     notifyListeners();
 
     try {
       _products = await StorageService.loadProducts();
-      _lastImportDate = StorageService.getLastImportDate();
+      _lastImportDate = await StorageService.getLastImportDate();
     } catch (e) {
       _products = [];
       if (kDebugMode) {
@@ -55,18 +54,17 @@ class ProductProvider extends ChangeNotifier {
       final List<Product> parsed = await ExcelService.parseExcelFile(file);
       stopwatch.stop();
 
-      // Sauvegarder dans Hive
+      // Sauvegarder
       await StorageService.saveProducts(parsed);
 
       _products = parsed;
-      _lastImportDate = StorageService.getLastImportDate();
+      _lastImportDate = await StorageService.getLastImportDate();
       _isLoading = false;
       _error = null;
       notifyListeners();
 
       if (kDebugMode) {
         print('${parsed.length} produits en ${stopwatch.elapsedMilliseconds}ms');
-        print('Sauvegarde effectuee.');
       }
       return true;
     } catch (e) {
@@ -91,19 +89,16 @@ class ProductProvider extends ChangeNotifier {
     return null;
   }
 
-  /// Recherche par designation ou code-barres
   List<Product> searchProducts(String query) {
     if (query.trim().isEmpty) return [];
-
     final String searchTerm = query.trim().toLowerCase();
 
     return _products.where((product) {
       return product.designation.toLowerCase().contains(searchTerm) ||
-             product.barcode.toLowerCase().contains(searchTerm);
+          product.barcode.toLowerCase().contains(searchTerm);
     }).toList();
   }
 
-  /// Reinitialiser + effacer la sauvegarde
   Future<void> clearDatabase() async {
     await StorageService.clearProducts();
     _products = [];
