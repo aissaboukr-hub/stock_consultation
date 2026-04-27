@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import '../providers/product_provider.dart';
 import 'scanner_screen.dart';
 import 'search_screen.dart';
+import 'settings_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -33,6 +34,20 @@ class _HomeScreenState extends State<HomeScreen> {
         centerTitle: true,
         backgroundColor: const Color(0xFF1A237E),
         elevation: 0,
+        actions: [
+          // Icône Paramètres
+          IconButton(
+            icon: const Icon(Icons.settings_rounded, color: Colors.white),
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => const SettingsScreen(),
+                ),
+              );
+            },
+          ),
+        ],
       ),
       body: Consumer<ProductProvider>(
         builder: (context, provider, _) {
@@ -57,58 +72,23 @@ class _HomeScreenState extends State<HomeScreen> {
                 _buildStatusCard(provider),
                 const SizedBox(height: 28),
 
-                // Bouton Importer
-                SizedBox(
-                  width: double.infinity,
-                  height: 56,
-                  child: ElevatedButton.icon(
-                    onPressed: provider.isLoading
-                        ? null
-                        : () => _handleImport(context, provider),
-                    icon: provider.isLoading
-                        ? const SizedBox(
-                            width: 22,
-                            height: 22,
-                            child: CircularProgressIndicator(
-                              strokeWidth: 2.5,
-                              color: Colors.white,
-                            ),
-                          )
-                        : const Icon(Icons.file_upload_outlined, size: 24),
-                    label: Text(
-                      provider.isLoading
-                          ? 'Importation en cours...'
-                          : 'Importer la base de donnees (.xlsx)',
-                      style: const TextStyle(fontSize: 16),
-                    ),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF1A237E),
-                      foregroundColor: Colors.white,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(14),
-                      ),
-                      elevation: 2,
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 16),
-
                 // Bouton Scanner
                 SizedBox(
                   width: double.infinity,
                   height: 56,
                   child: ElevatedButton.icon(
-                    onPressed:
-                        provider.isDatabaseLoaded && !provider.isLoading
-                            ? () => Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                      builder: (_) => const ScannerScreen()),
-                                )
-                            : null,
+                    onPressed: provider.isDatabaseLoaded && !provider.isLoading
+                        ? () => Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                  builder: (_) => const ScannerScreen()),
+                            )
+                        : null,
                     icon: const Icon(Icons.qr_code_scanner_rounded, size: 24),
-                    label: const Text('Scanner un produit',
-                        style: TextStyle(fontSize: 16)),
+                    label: const Text(
+                      'Scanner un produit',
+                      style: TextStyle(fontSize: 16),
+                    ),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: provider.isDatabaseLoaded
                           ? const Color(0xFF43A047)
@@ -130,17 +110,18 @@ class _HomeScreenState extends State<HomeScreen> {
                   width: double.infinity,
                   height: 56,
                   child: ElevatedButton.icon(
-                    onPressed:
-                        provider.isDatabaseLoaded && !provider.isLoading
-                            ? () => Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                      builder: (_) => const SearchScreen()),
-                                )
-                            : null,
+                    onPressed: provider.isDatabaseLoaded && !provider.isLoading
+                        ? () => Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                  builder: (_) => const SearchScreen()),
+                            )
+                        : null,
                     icon: const Icon(Icons.search_rounded, size: 24),
-                    label: const Text('Rechercher un produit',
-                        style: TextStyle(fontSize: 16)),
+                    label: const Text(
+                      'Rechercher un produit',
+                      style: TextStyle(fontSize: 16),
+                    ),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: provider.isDatabaseLoaded
                           ? const Color(0xFF1565C0)
@@ -155,28 +136,23 @@ class _HomeScreenState extends State<HomeScreen> {
                     ),
                   ),
                 ),
-                const SizedBox(height: 16),
-
-                // Bouton Reinitialiser
-                if (provider.isDatabaseLoaded)
-                  TextButton.icon(
-                    onPressed: () async {
-                      await provider.clearDatabase();
-                      if (context.mounted) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                            content: Text('Base de donnees reinitialisee'),
-                            behavior: SnackBarBehavior.floating,
-                          ),
-                        );
-                      }
-                    },
-                    icon: const Icon(Icons.delete_outline, color: Colors.red),
-                    label: const Text('Reinitialiser',
-                        style: TextStyle(color: Colors.red)),
-                  ),
 
                 const Spacer(),
+
+                // Info rapide
+                if (!provider.isDatabaseLoaded)
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 16),
+                    child: Text(
+                      'Appuyez sur l\'icone parametres en haut a droite pour importer votre fichier Excel.',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        fontSize: 13,
+                        color: Colors.grey.shade500,
+                        height: 1.5,
+                      ),
+                    ),
+                  ),
 
                 Text(
                   'v1.0 - Consultation de Stock',
@@ -226,7 +202,7 @@ class _HomeScreenState extends State<HomeScreen> {
       iconBg = Colors.grey;
       icon = Icons.info_outline_rounded;
       title = 'Aucune donnee importee';
-      subtitle = 'Importez un fichier .xlsx pour commencer';
+      subtitle = 'Importez un fichier .xlsx depuis les parametres';
     }
 
     return Container(
@@ -276,35 +252,5 @@ class _HomeScreenState extends State<HomeScreen> {
         ],
       ),
     );
-  }
-
-  Future<void> _handleImport(
-      BuildContext context, ProductProvider provider) async {
-    final success = await provider.importFromExcel();
-    if (!context.mounted) return;
-
-    if (success) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-              '${provider.productCount} produits importes et sauvegardes !'),
-          backgroundColor: Colors.green,
-          behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(10)),
-        ),
-      );
-    } else if (provider.error != null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Erreur : ${provider.error}'),
-          backgroundColor: Colors.red,
-          behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(10)),
-          duration: const Duration(seconds: 5),
-        ),
-      );
-    }
   }
 }
