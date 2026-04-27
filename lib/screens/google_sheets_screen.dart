@@ -14,12 +14,14 @@ class _GoogleSheetsScreenState extends State<GoogleSheetsScreen> {
   final TextEditingController _urlController = TextEditingController();
   final TextEditingController _sheetNameController =
       TextEditingController(text: 'Feuil1');
-
+  
   String? _spreadsheetId;
+  bool _hasHeaders = true; // Option explicite pour les en-têtes
   bool _isChecking = false;
   bool _isImporting = false;
   String? _statusMessage;
   bool _isStatusError = false;
+  List<String>? _detectedHeaders; // Pour afficher à l'utilisateur
 
   @override
   void dispose() {
@@ -46,20 +48,41 @@ class _GoogleSheetsScreenState extends State<GoogleSheetsScreen> {
       _isChecking = true;
       _spreadsheetId = id;
       _statusMessage = null;
+      _detectedHeaders = null;
     });
 
-    final result = await GoogleSheetsService.testConnection(id);
+    try {
+      // Extraire les en-têtes réelles pour vérification
+      final result = await GoogleSheetsService.testConnectionAndHeaders(
+        id,
+        sheetName: _sheetNameController.text.trim(),
+      );
 
-    setState(() {
-      _isChecking = false;
-      _isStatusError = !result['success'];
-      _statusMessage = result['message'];
-    });
+      setState(() {
+        _isChecking = false;
+        _isStatusError = !result['success'];
+        _statusMessage = result['message'];
+        _detectedHeaders = result['headers'] as List<String>?;
+        
+        // Si pas d'en-têtes détectées, désactiver le toggle par défaut
+        if (_detectedHeaders != null && !_detectedHeaders!.isEmpty) {
+          if (_detectedHeaders!.every((h) => RegExp(r'^\d+$').hasMatch(h))) {
+            _hasHeaders = false;
+          }
+        }
+      });
+    } catch (e) {
+      setState(() {
+        _isChecking = false;
+        _isStatusError = true;
+        _statusMessage = 'Erreur : $e';
+      });
+    }
   }
 
   Future<void> _importFromGoogleSheets() async {
     if (_spreadsheetId == null) {
-      _showStatus('Verifiez d\'abord la connexion.', true);
+      _showStatus('Vérifiez d\'abord la connexion.', true);
       return;
     }
 
@@ -78,9 +101,9 @@ class _GoogleSheetsScreenState extends State<GoogleSheetsScreen> {
       final products = await GoogleSheetsService.fetchProducts(
         _spreadsheetId!,
         sheetName: sheetName,
+        hasHeaders: _hasHeaders,
       );
 
-      // Sauvegarder via le provider
       final provider = context.read<ProductProvider>();
       await provider.saveProductsDirectly(products);
 
@@ -89,18 +112,15 @@ class _GoogleSheetsScreenState extends State<GoogleSheetsScreen> {
       setState(() {
         _isImporting = false;
         _isStatusError = false;
-        _statusMessage =
-            '${products.length} produits importes avec succes !';
+        _statusMessage = '${products.length} produits importés avec succès !';
       });
 
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content:
-              Text('${products.length} produits importes depuis Google Sheets !'),
+          content: Text('${products.length} produits importés depuis Google Sheets !'),
           backgroundColor: Colors.green,
           behavior: SnackBarBehavior.floating,
-          shape:
-              RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
         ),
       );
     } catch (e) {
@@ -132,8 +152,7 @@ class _GoogleSheetsScreenState extends State<GoogleSheetsScreen> {
         backgroundColor: const Color(0xFF1A237E),
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios_new_rounded,
-              color: Colors.white),
+          icon: const Icon(Icons.arrow_back_ios_new_rounded, color: Colors.white),
           onPressed: () => Navigator.pop(context),
         ),
       ),
@@ -142,7 +161,7 @@ class _GoogleSheetsScreenState extends State<GoogleSheetsScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Explication
+            // Explication conditions
             Container(
               width: double.infinity,
               padding: const EdgeInsets.all(16),
@@ -153,8 +172,7 @@ class _GoogleSheetsScreenState extends State<GoogleSheetsScreen> {
               ),
               child: Row(
                 children: [
-                  Icon(Icons.info_outline_rounded,
-                      color: Colors.blue.shade700),
+                  Icon(Icons.info_outline_rounded, color: Colors.blue.shade700),
                   const SizedBox(width: 12),
                   Expanded(
                     child: Column(
@@ -170,7 +188,7 @@ class _GoogleSheetsScreenState extends State<GoogleSheetsScreen> {
                         ),
                         const SizedBox(height: 4),
                         Text(
-                          'Le Google Sheet doit etre partage :\n'
+                          'Le Google Sheet doit être partagé :\n'
                           'Partager > Toute personne avec le lien > Lecteur',
                           style: TextStyle(
                             fontSize: 12,
@@ -199,8 +217,7 @@ class _GoogleSheetsScreenState extends State<GoogleSheetsScreen> {
             TextField(
               controller: _urlController,
               decoration: InputDecoration(
-                hintText:
-                    'https://docs.google.com/spreadsheets/d/XXXXX/edit',
+                hintText: 'https://docs.google.com/spreadsheets/d/XXXXX/edit',
                 hintStyle: TextStyle(color: Colors.grey.shade400),
                 prefixIcon: const Icon(Icons.link, color: Color(0xFF1A237E)),
                 suffixIcon: _urlController.text.isNotEmpty
@@ -211,6 +228,7 @@ class _GoogleSheetsScreenState extends State<GoogleSheetsScreen> {
                           setState(() {
                             _spreadsheetId = null;
                             _statusMessage = null;
+                            _detectedHeaders = null;
                           });
                         },
                       )
@@ -227,8 +245,7 @@ class _GoogleSheetsScreenState extends State<GoogleSheetsScreen> {
                 ),
                 focusedBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(12),
-                  borderSide:
-                      const BorderSide(color: Color(0xFF1A237E), width: 2),
+                  borderSide: const BorderSide(color: Color(0xFF1A237E), width: 2),
                 ),
               ),
               onChanged: (_) => setState(() {}),
@@ -250,8 +267,7 @@ class _GoogleSheetsScreenState extends State<GoogleSheetsScreen> {
               decoration: InputDecoration(
                 hintText: 'Feuil1',
                 hintStyle: TextStyle(color: Colors.grey.shade400),
-                prefixIcon:
-                    const Icon(Icons.table_chart, color: Color(0xFF1A237E)),
+                prefixIcon: const Icon(Icons.table_chart, color: Color(0xFF1A237E)),
                 filled: true,
                 fillColor: Colors.white,
                 border: OutlineInputBorder(
@@ -264,14 +280,61 @@ class _GoogleSheetsScreenState extends State<GoogleSheetsScreen> {
                 ),
                 focusedBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(12),
-                  borderSide:
-                      const BorderSide(color: Color(0xFF1A237E), width: 2),
+                  borderSide: const BorderSide(color: Color(0xFF1A237E), width: 2),
                 ),
               ),
             ),
             const SizedBox(height: 24),
 
-            // Bouton Verifier
+            // Toggle En-têtes
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: Colors.grey.shade300),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Checkbox(
+                        value: _hasHeaders,
+                        onChanged: (value) {
+                          setState(() => _hasHeaders = value ?? false);
+                        },
+                        activeColor: const Color(0xFF1A237E),
+                      ),
+                      Expanded(
+                        child: Text(
+                          'Première ligne contient les en-têtes',
+                          style: TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w600,
+                            color: Colors.grey.shade700,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    'Si coché : CodeBarre | Designation | Prix | Quantite\n'
+                    'Si décoché : Colonne 1=CodeBarre, 2=Désignation, 3=Prix, 4=Quantité',
+                    style: TextStyle(
+                      fontSize: 11,
+                      color: Colors.grey.shade500,
+                      height: 1.4,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 24),
+
+            // Bouton Vérifier
             SizedBox(
               width: double.infinity,
               height: 56,
@@ -285,7 +348,7 @@ class _GoogleSheetsScreenState extends State<GoogleSheetsScreen> {
                       )
                     : const Icon(Icons.wifi_find_rounded),
                 label: Text(
-                  _isChecking ? 'Verification...' : 'Tester la connexion',
+                  _isChecking ? 'Vérification...' : 'Tester la connexion',
                   style: const TextStyle(fontSize: 16),
                 ),
                 style: OutlinedButton.styleFrom(
@@ -298,6 +361,50 @@ class _GoogleSheetsScreenState extends State<GoogleSheetsScreen> {
               ),
             ),
 
+            // Affichage des en-têtes détectées
+            if (_detectedHeaders != null && _detectedHeaders!.isNotEmpty) ...[
+              const SizedBox(height: 16),
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.yellow.shade50,
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(color: Colors.yellow.shade300),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'En-têtes détectées dans la première ligne :',
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                        color: Colors.brown.shade700,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Wrap(
+                      spacing: 8,
+                      runSpacing: 8,
+                      children: _detectedHeaders!
+                          .take(4)
+                          .map((header) => Chip(
+                                label: Text(
+                                  header.length > 20
+                                      ? '${header.substring(0, 20)}...'
+                                      : header,
+                                  style: const TextStyle(fontSize: 10),
+                                ),
+                                backgroundColor: Colors.white,
+                              ))
+                          .toList(),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+
             // Statut
             if (_statusMessage != null) ...[
               const SizedBox(height: 16),
@@ -305,14 +412,10 @@ class _GoogleSheetsScreenState extends State<GoogleSheetsScreen> {
                 width: double.infinity,
                 padding: const EdgeInsets.all(14),
                 decoration: BoxDecoration(
-                  color: _isStatusError
-                      ? Colors.red.shade50
-                      : Colors.green.shade50,
+                  color: _isStatusError ? Colors.red.shade50 : Colors.green.shade50,
                   borderRadius: BorderRadius.circular(12),
                   border: Border.all(
-                    color: _isStatusError
-                        ? Colors.red.shade300
-                        : Colors.green.shade300,
+                    color: _isStatusError ? Colors.red.shade300 : Colors.green.shade300,
                   ),
                 ),
                 child: Row(
@@ -321,9 +424,7 @@ class _GoogleSheetsScreenState extends State<GoogleSheetsScreen> {
                       _isStatusError
                           ? Icons.error_outline_rounded
                           : Icons.check_circle_outline_rounded,
-                      color: _isStatusError
-                          ? Colors.red.shade600
-                          : Colors.green.shade600,
+                      color: _isStatusError ? Colors.red.shade600 : Colors.green.shade600,
                     ),
                     const SizedBox(width: 12),
                     Expanded(
@@ -331,9 +432,7 @@ class _GoogleSheetsScreenState extends State<GoogleSheetsScreen> {
                         _statusMessage!,
                         style: TextStyle(
                           fontSize: 13,
-                          color: _isStatusError
-                              ? Colors.red.shade700
-                              : Colors.green.shade700,
+                          color: _isStatusError ? Colors.red.shade700 : Colors.green.shade700,
                           height: 1.4,
                         ),
                       ),
@@ -363,9 +462,7 @@ class _GoogleSheetsScreenState extends State<GoogleSheetsScreen> {
                         )
                       : const Icon(Icons.cloud_download_rounded, size: 24),
                   label: Text(
-                    _isImporting
-                        ? 'Importation en cours...'
-                        : 'Importer depuis Google Sheets',
+                    _isImporting ? 'Importation en cours...' : 'Importer depuis Google Sheets',
                     style: const TextStyle(fontSize: 16),
                   ),
                   style: ElevatedButton.styleFrom(
@@ -378,86 +475,7 @@ class _GoogleSheetsScreenState extends State<GoogleSheetsScreen> {
                   ),
                 ),
               ),
-
-            const SizedBox(height: 32),
-
-            // Exemple de structure attendue
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: Colors.grey.shade100,
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'Structure attendue dans le sheet :',
-                    style: TextStyle(
-                      fontWeight: FontWeight.w600,
-                      fontSize: 13,
-                      color: Colors.grey.shade700,
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  Table(
-                    border: TableBorder.all(
-                      color: Colors.grey.shade300,
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    children: const [
-                      TableRow(
-                        decoration: BoxDecoration(
-                          color: const Color(0xFF1A237E),
-                        ),
-                        children: [
-                          _TableCell('CodeBarre', isHeader: true),
-                          _TableCell('Designation', isHeader: true),
-                          _TableCell('Prix', isHeader: true),
-                          _TableCell('Quantite', isHeader: true),
-                        ],
-                      ),
-                      TableRow(children: [
-                        _TableCell('3017620422003'),
-                        _TableCell('Nutella 400g'),
-                        _TableCell('4.29'),
-                        _TableCell('150'),
-                      ]),
-                      TableRow(children: [
-                        _TableCell('5449000000996'),
-                        _TableCell('Coca-Cola 1.5L'),
-                        _TableCell('2.49'),
-                        _TableCell('87'),
-                      ]),
-                    ],
-                  ),
-                ],
-              ),
-            ),
           ],
-        ),
-      ),
-    );
-  }
-}
-
-class _TableCell extends StatelessWidget {
-  final String text;
-  final bool isHeader;
-
-  const _TableCell(this.text, {this.isHeader = false});
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
-      child: Text(
-        text,
-        style: TextStyle(
-          fontSize: 11,
-          fontWeight: isHeader ? FontWeight.w700 : FontWeight.normal,
-          color: isHeader ? Colors.white : Colors.grey.shade700,
         ),
       ),
     );
