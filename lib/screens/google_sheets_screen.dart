@@ -172,26 +172,7 @@ class _GoogleSheetsScreenState extends State<GoogleSheetsScreen> {
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'Conditions requises',
-                          style: TextStyle(
-                            fontWeight: FontWeight.w600,
-                            fontSize: 14,
-                            color: Colors.blue.shade700,
-                          ),
-                        ),
-                        const SizedBox(height: 4),
-                        Text(
-                          'Le Google Sheet doit être partagé :\n'
-                          'Partager > Toute personne avec le lien > Lecteur',
-                          style: TextStyle(
-                            fontSize: 12,
-                            color: Colors.blue.shade600,
-                            height: 1.4,
-                          ),
-                        ),
-                      ],
+                      
                     ),
                   ),
                 ],
@@ -302,16 +283,7 @@ class _GoogleSheetsScreenState extends State<GoogleSheetsScreen> {
                         },
                         activeColor: const Color(0xFF1A237E),
                       ),
-                      Expanded(
-                        child: Text(
-                          'Première ligne contient les en-têtes',
-                          style: TextStyle(
-                            fontSize: 14,
-                            fontWeight: FontWeight.w600,
-                            color: Colors.grey.shade700,
-                          ),
-                        ),
-                      ),
+                      
                     ],
                   ),
                   const SizedBox(height: 4),
@@ -367,36 +339,7 @@ class _GoogleSheetsScreenState extends State<GoogleSheetsScreen> {
                   borderRadius: BorderRadius.circular(10),
                   border: Border.all(color: Colors.yellow.shade300),
                 ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'En-têtes détectées dans la première ligne :',
-                      style: TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.w600,
-                        color: Colors.brown.shade700,
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    Wrap(
-                      spacing: 8,
-                      runSpacing: 8,
-                      children: _detectedHeaders!
-                          .take(4)
-                          .map((header) => Chip(
-                                label: Text(
-                                  header.length > 20
-                                      ? '${header.substring(0, 20)}...'
-                                      : header,
-                                  style: const TextStyle(fontSize: 10),
-                                ),
-                                backgroundColor: Colors.white,
-                              ))
-                          .toList(),
-                    ),
-                  ],
-                ),
+                
               ),
             ],
 
