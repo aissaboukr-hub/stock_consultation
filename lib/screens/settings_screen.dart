@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/product_provider.dart';
+import 'google_sheets_screen.dart';
 
 class SettingsScreen extends StatelessWidget {
   const SettingsScreen({super.key});
@@ -18,7 +19,8 @@ class SettingsScreen extends StatelessWidget {
         backgroundColor: const Color(0xFF1A237E),
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios_new_rounded, color: Colors.white),
+          icon: const Icon(Icons.arrow_back_ios_new_rounded,
+              color: Colors.white),
           onPressed: () => Navigator.pop(context),
         ),
       ),
@@ -31,28 +33,40 @@ class SettingsScreen extends StatelessWidget {
               children: [
                 // Titre section
                 Text(
-                  'Base de donnees',
+                  'BASE DE DONNEES',
                   style: TextStyle(
-                    fontSize: 13,
+                    fontSize: 12,
                     fontWeight: FontWeight.w700,
                     color: Colors.grey.shade500,
-                    letterSpacing: 1.2,
+                    letterSpacing: 1.5,
                   ),
                 ),
                 const SizedBox(height: 16),
 
                 // Carte info BDD
                 _buildDatabaseCard(provider),
-                const SizedBox(height: 24),
+                const SizedBox(height: 28),
 
-                // Bouton Importer
+                // Titre section Sources
+                Text(
+                  'SOURCES D\'IMPORT',
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w700,
+                    color: Colors.grey.shade500,
+                    letterSpacing: 1.5,
+                  ),
+                ),
+                const SizedBox(height: 16),
+
+                // Bouton Importer Excel
                 SizedBox(
                   width: double.infinity,
                   height: 56,
                   child: ElevatedButton.icon(
                     onPressed: provider.isLoading
                         ? null
-                        : () => _handleImport(context, provider),
+                        : () => _handleImportExcel(context, provider),
                     icon: provider.isLoading
                         ? const SizedBox(
                             width: 22,
@@ -66,7 +80,7 @@ class SettingsScreen extends StatelessWidget {
                     label: Text(
                       provider.isLoading
                           ? 'Importation en cours...'
-                          : 'Importer la base de donnees (.xlsx)',
+                          : 'Importer depuis Excel (.xlsx)',
                       style: const TextStyle(fontSize: 16),
                     ),
                     style: ElevatedButton.styleFrom(
@@ -79,19 +93,62 @@ class SettingsScreen extends StatelessWidget {
                     ),
                   ),
                 ),
+                const SizedBox(height: 12),
+
+                // Bouton Google Sheets
+                SizedBox(
+                  width: double.infinity,
+                  height: 56,
+                  child: OutlinedButton.icon(
+                    onPressed: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => const GoogleSheetsScreen(),
+                        ),
+                      );
+                    },
+                    icon: const Icon(Icons.cloud_download_outlined,
+                        color: Color(0xFF1A237E)),
+                    label: const Text(
+                      'Importer depuis Google Sheets',
+                      style:
+                          TextStyle(color: Color(0xFF1A237E), fontSize: 16),
+                    ),
+                    style: OutlinedButton.styleFrom(
+                      side: const BorderSide(color: Color(0xFF1A237E)),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(14),
+                      ),
+                    ),
+                  ),
+                ),
                 const SizedBox(height: 16),
 
-                // Bouton Reinitialiser (si BDD chargee)
-                if (provider.isDatabaseLoaded)
+                // Bouton Reinitialiser
+                if (provider.isDatabaseLoaded) ...[
+                  const SizedBox(height: 8),
+                  Text(
+                    'GESTION',
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w700,
+                      color: Colors.grey.shade500,
+                      letterSpacing: 1.5,
+                    ),
+                  ),
+                  const SizedBox(height: 16),
                   SizedBox(
                     width: double.infinity,
                     height: 56,
                     child: OutlinedButton.icon(
                       onPressed: () => _confirmReset(context, provider),
-                      icon: const Icon(Icons.delete_outline, color: Colors.red),
+                      icon: const Icon(Icons.delete_outline,
+                          color: Colors.red),
                       label: const Text(
                         'Reinitialiser la base de donnees',
-                        style: TextStyle(color: Colors.red, fontSize: 16),
+                        style:
+                            TextStyle(color: Colors.red, fontSize: 16),
                       ),
                       style: OutlinedButton.styleFrom(
                         side: const BorderSide(color: Colors.red),
@@ -101,10 +158,10 @@ class SettingsScreen extends StatelessWidget {
                       ),
                     ),
                   ),
+                ],
 
                 const Spacer(),
 
-                // Footer
                 Center(
                   child: Text(
                     'v1.0 - Consultation de Stock',
@@ -135,7 +192,7 @@ class SettingsScreen extends StatelessWidget {
       iconBg = Colors.blue;
       icon = Icons.hourglass_empty_rounded;
       title = 'Importation en cours';
-      subtitle = 'Lecture du fichier Excel...';
+      subtitle = 'Lecture du fichier...';
     } else if (provider.error != null) {
       cardColor = Colors.red.shade50;
       iconBg = Colors.red;
@@ -146,7 +203,8 @@ class SettingsScreen extends StatelessWidget {
       cardColor = Colors.green.shade50;
       iconBg = Colors.green;
       icon = Icons.storage_rounded;
-      title = '${provider.productCount} produit${provider.productCount > 1 ? 's' : ''} enregistre${provider.productCount > 1 ? 's' : ''}';
+      title =
+          '${provider.productCount} produit${provider.productCount > 1 ? 's' : ''} enregistre${provider.productCount > 1 ? 's' : ''}';
       subtitle = provider.lastImportDate != null
           ? 'Importe le ${provider.lastImportDate}'
           : 'Base de donnees disponible';
@@ -155,7 +213,7 @@ class SettingsScreen extends StatelessWidget {
       iconBg = Colors.grey;
       icon = Icons.cloud_off_rounded;
       title = 'Aucune donnee';
-      subtitle = 'Importez un fichier .xlsx pour commencer';
+      subtitle = 'Importez un fichier pour commencer';
     }
 
     return Container(
@@ -205,7 +263,7 @@ class SettingsScreen extends StatelessWidget {
     );
   }
 
-  Future<void> _handleImport(
+  Future<void> _handleImportExcel(
       BuildContext context, ProductProvider provider) async {
     final success = await provider.importFromExcel();
     if (!context.mounted) return;

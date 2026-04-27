@@ -17,7 +17,6 @@ class ProductProvider extends ChangeNotifier {
   String? get error => _error;
   String? get lastImportDate => _lastImportDate;
 
-  /// Charger les produits sauvegardes au demarrage
   Future<void> loadSavedProducts() async {
     _isLoading = true;
     notifyListeners();
@@ -27,16 +26,13 @@ class ProductProvider extends ChangeNotifier {
       _lastImportDate = await StorageService.getLastImportDate();
     } catch (e) {
       _products = [];
-      if (kDebugMode) {
-        print('Erreur chargement: $e');
-      }
+      if (kDebugMode) print('Erreur chargement: $e');
     }
 
     _isLoading = false;
     notifyListeners();
   }
 
-  /// Importer depuis Excel + sauvegarder
   Future<bool> importFromExcel() async {
     _isLoading = true;
     _error = null;
@@ -50,11 +46,8 @@ class ProductProvider extends ChangeNotifier {
         return false;
       }
 
-      final stopwatch = Stopwatch()..start();
       final List<Product> parsed = await ExcelService.parseExcelFile(file);
-      stopwatch.stop();
 
-      // Sauvegarder
       await StorageService.saveProducts(parsed);
 
       _products = parsed;
@@ -62,21 +55,23 @@ class ProductProvider extends ChangeNotifier {
       _isLoading = false;
       _error = null;
       notifyListeners();
-
-      if (kDebugMode) {
-        print('${parsed.length} produits en ${stopwatch.elapsedMilliseconds}ms');
-      }
       return true;
     } catch (e) {
       _isLoading = false;
       _error = e.toString();
       notifyListeners();
-
-      if (kDebugMode) {
-        print('Erreur: $e');
-      }
       return false;
     }
+  }
+
+  /// Sauvegarder directement des produits (Google Sheets)
+  Future<void> saveProductsDirectly(List<Product> products) async {
+    await StorageService.saveProducts(products);
+    _products = products;
+    _lastImportDate = await StorageService.getLastImportDate();
+    _isLoading = false;
+    _error = null;
+    notifyListeners();
   }
 
   Product? findProductByBarcode(String barcode) {
